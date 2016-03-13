@@ -70,7 +70,7 @@ packageJsonDepsHash().then(function(hash) {
         stdio: 'inherit'
     });
 
-    npmProcess.on('close', (code) => {
+    npmProcess.on('close', function(code) {
         if (code !== 0) {
             return;
         }
