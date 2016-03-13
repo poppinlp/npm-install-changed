@@ -1,0 +1,11 @@
+{
+  "name": "npm-install-changed",
+  "version": "1.0.0",
+  "bin": {
+      "npm-install-changed": "./index.js"
+  },
+  "description": "Only run 'npm install' if dependencies changed",
+  "author": "Jose Pereira <onaips@gmail.com>",
+  "license": "MIT",
+  "repository": "https://github.com/oNaiPs/npm-install-changed.git"
+}
