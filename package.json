@@ -1,8 +1,8 @@
 {
   "name": "npm-install-changed",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "bin": {
-      "npm-install-changed": "./index.js"
+    "npm-install-changed": "./index.js"
   },
   "description": "Only run 'npm install' if dependencies changed",
   "author": "Jose Pereira <onaips@gmail.com>",
