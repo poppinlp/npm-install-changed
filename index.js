@@ -6,6 +6,8 @@
  * Run this script ensures 'npm install' is only run if there are dependency
  *  changes between installations. It makes a huge difference in build times
  *  on build servers.
+ *
+ * Use --bower argument to do the same for 'bower install'
  */
 'use strict';
 
@@ -15,12 +17,8 @@ var crypto = require('crypto');
 var assert = require('assert');
 
 var hashFile = '.npm-install-changed.json';
-
 var config = {};
-
-try {
-    var config = JSON.parse(fs.readFileSync(hashFile));
-} catch (e) {}
+var packager;
 
 /**
  * Returns checksum of passed string.
@@ -36,9 +34,9 @@ function checksum(str, algorithm, encoding) {
  * Returns a hash built from all package.json dependencies and devDependencies
  *  project names and versions.
  */
-function packageJsonDepsHash() {
+function configJsonDepsHash() {
     return new Promise(function(resolve) {
-        fs.readFile('./package.json', function(err, data) {
+        fs.readFile(packager.configJson, function(err, data) {
             assert.ifError(err);
 
             var packageJson = JSON.parse(data);
@@ -57,27 +55,45 @@ function packageJsonDepsHash() {
     });
 }
 
-packageJsonDepsHash().then(function(hash) {
-    //make sure that if package.json changed, npm shrinkwrap should as well
-    if (hash === config.hash) {
+try {
+    var config = JSON.parse(fs.readFileSync(hashFile));
+} catch (e) {}
+
+//determine what packager are we targeting
+if (process.argv.indexOf('--bower') >= 0) {
+    packager = {
+        bin: 'bower',
+        configJson: './bower.json'
+    };
+} else {
+    packager = {
+        bin: 'npm',
+        configJson: './package.json'
+    };
+}
+
+configJsonDepsHash().then(function(hash) {
+    var hashKey = [packager.bin + '-hash'];
+
+    if (hash === config[hashKey]) {
         console.log('Nothing to do.');
         return;
     }
 
-    //looks like package.json dependencies have changed
-    console.log('Running npm install...');
-    var npmProcess = spawn('npm', ['install'], {
+    //looks like configJson dependencies have changed
+    console.log('Running ' + packager.bin + ' install...');
+    var packagerProcess = spawn(packager.bin, ['install'], {
         stdio: 'inherit'
     });
 
-    npmProcess.on('close', function(code) {
+    packagerProcess.on('close', function(code) {
         if (code !== 0) {
             return;
         }
 
-        config.hash = hash;
+        config[hashKey] = hash;
 
-        //only save new hash if npm install was successful
+        //only save new hash if packager install was successful
         fs.writeFile(hashFile, JSON.stringify(config));
     });
 

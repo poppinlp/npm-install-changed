@@ -24,6 +24,12 @@ npm-install-changed
 
 instead of the usual `npm install`
 
+For bower, you should run:
+
+```
+npm-install-changed --bower
+```
+
 ### License
 
 > MIT License 2016 © Jose Pereira
