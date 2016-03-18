@@ -24,11 +24,9 @@ npm-install-changed
 
 instead of the usual `npm install`
 
-For bower, you should run:
+### Arguments
 
-```
-npm-install-changed --bower
-```
+Use `--bower` for bower package manager. To do recursive checking on dependencies, use `--recursive`.
 
 ### License
 

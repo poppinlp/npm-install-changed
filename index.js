@@ -8,15 +8,17 @@
  *  on build servers.
  *
  * Use --bower argument to do the same for 'bower install'
+ * Use --recursive argument to verify if dependency configs changed.
  */
 'use strict';
 
 var fs = require('fs');
 var spawn = require('child_process').spawn;
 var crypto = require('crypto');
-var assert = require('assert');
+var path = require('path');
 
 var hashFile = '.npm-install-changed.json';
+var recursive = process.argv.indexOf('--recursive') >= 0;
 var config = {};
 var packager;
 
@@ -31,27 +33,89 @@ function checksum(str, algorithm, encoding) {
 }
 
 /**
+ * Returns component folder path for dir.
+ */
+function componentsFolder(dir) {
+    if (packager.bin === 'bower') {
+        var bowerComponents = path.join(dir, 'bower_components');
+        try {
+            var bowerRc = JSON.parse(fs.readFileSync(
+                path.join(dir, '.bowerrc')));
+            packager.componentsFolder = path.join(dir, bowerRc.directory);
+        } catch (e) {}
+
+        return bowerComponents;
+    } else if (packager.bin === 'npm') {
+        return path.join(dir, 'node_modules');
+    } else {
+        throw 'Packager not supported';
+    }
+}
+
+/**
+ * Returns directories inside components folder.
+ */
+function dependenciesFolders(dir) {
+    var components = componentsFolder(dir);
+    try {
+        return fs.readdirSync(components)
+            .filter(function(file) {
+                return fs.statSync(path.join(components, file)).isDirectory();
+            }).map(function(file) {
+                return path.join(components, file);
+            });
+    } catch (e) {
+        return [];
+    }
+}
+
+/**
  * Returns a hash built from all package.json dependencies and devDependencies
  *  project names and versions.
  */
-function configJsonDepsHash() {
+function configJsonDepsHash(configJsonDir) {
     return new Promise(function(resolve) {
-        fs.readFile(packager.configJson, function(err, data) {
-            assert.ifError(err);
+        fs.readFile(path.join(configJsonDir, packager.configJson),
+            function(err, data) {
+                if (err) {
+                    resolve('noconfig');
+                    return;
+                }
 
-            var packageJson = JSON.parse(data);
-            var newHash = 'emptydeps';
-            ['dependencies', 'devDependencies'].forEach(
-                function(
-                    dep) {
-                    for (var key in packageJson[dep]) {
-                        newHash = checksum(newHash + key +
-                            packageJson[dep][key]);
-                    }
-                });
+                var packageJson = JSON.parse(data);
+                var newHash = 'emptydeps';
+                ['dependencies', 'devDependencies'].forEach(
+                    function(
+                        dep) {
+                        for (var key in packageJson[dep]) {
+                            newHash = checksum(newHash +
+                                key +
+                                packageJson[dep][key]);
+                        }
+                    });
 
-            resolve(newHash);
-        });
+                if (recursive) {
+                    var hashPromises = dependenciesFolders(
+                        configJsonDir).map(
+                        function(dir) {
+                            return configJsonDepsHash(dir);
+                        });
+
+                    Promise.all(hashPromises).then(function(hashes) {
+                        for (var i = 0; i < hashes.length; i++) {
+                            newHash = checksum(newHash + hashes[i]);
+                        }
+
+                        resolve(newHash);
+                    }).catch(function(err) {
+                        console.log(err);
+                        //there was some problem here, log it but continue.
+                        resolve('exception');
+                    });
+                } else {
+                    resolve(newHash);
+                }
+            });
     });
 }
 
@@ -72,7 +136,7 @@ if (process.argv.indexOf('--bower') >= 0) {
     };
 }
 
-configJsonDepsHash().then(function(hash) {
+configJsonDepsHash(process.cwd()).then(function(hash) {
     var hashKey = [packager.bin + '-hash'];
 
     if (hash === config[hashKey]) {
@@ -97,6 +161,6 @@ configJsonDepsHash().then(function(hash) {
         fs.writeFile(hashFile, JSON.stringify(config));
     });
 
-}, function(err) {
+}).catch(function(err) {
     console.log(err);
 });
