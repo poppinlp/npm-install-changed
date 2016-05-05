@@ -13,7 +13,7 @@
 'use strict';
 
 var fs = require('fs');
-var spawn = require('child_process').spawn;
+var spawn = require('cross-spawn');
 var crypto = require('crypto');
 var path = require('path');
 
