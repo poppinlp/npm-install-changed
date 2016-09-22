@@ -19,6 +19,7 @@ var path = require('path');
 
 var hashFile = '.npm-install-changed.json';
 var recursive = process.argv.indexOf('--recursive') >= 0;
+var prune = process.argv.indexOf('--prune') >= 0;
 var config = {};
 var packager;
 
@@ -159,6 +160,18 @@ configJsonDepsHash(process.cwd()).then(function(hash) {
 
         //only save new hash if packager install was successful
         fs.writeFile(hashFile, JSON.stringify(config));
+        
+        if(prune){
+            var pruneProcess = spawn(packager.bin, ['prune'], {
+                stdio: 'inherit'
+            });
+        }
+    });
+
+    pruneProcess.on('close', function(code) {
+        if (code !== 0) {
+            return;
+        }
     });
 
 }).catch(function(err) {
