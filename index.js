@@ -9,6 +9,7 @@
  *
  * Use --bower argument to do the same for 'bower install'
  * Use --recursive argument to verify if dependency configs changed.
+ * Use --prune to remove unused dependencies after running install.
  */
 'use strict';
 
@@ -120,6 +121,33 @@ function configJsonDepsHash(configJsonDir) {
     });
 }
 
+function spawnProcessAndHandleClose(action,hash,cb){
+    console.log('Running ' + packager.bin + ' ' + action + '...');
+    var process = spawn(packager.bin, [action], {
+        stdio: 'inherit'
+    });
+
+    process.on('close', function(code) {
+        if (code !== 0) {
+            return;
+        }
+        if(typeof cb === "function"){
+            cb(hash);
+        }
+    });
+}
+
+function postInstall(hash){
+    config[hashKey] = hash;
+
+    //only save new hash if packager install was successful
+    fs.writeFile(hashFile, JSON.stringify(config));
+        
+    if(prune){
+        spawnProcessAndHandleClose('prune');
+    }
+}
+
 try {
     var config = JSON.parse(fs.readFileSync(hashFile));
 } catch (e) {}
@@ -137,8 +165,9 @@ if (process.argv.indexOf('--bower') >= 0) {
     };
 }
 
+var hashKey = [packager.bin + '-hash'];
+
 configJsonDepsHash(process.cwd()).then(function(hash) {
-    var hashKey = [packager.bin + '-hash'];
 
     if (hash === config[hashKey]) {
         console.log('Nothing to do.');
@@ -146,35 +175,7 @@ configJsonDepsHash(process.cwd()).then(function(hash) {
     }
 
     //looks like configJson dependencies have changed
-    console.log('Running ' + packager.bin + ' install...');
-    var packagerProcess = spawn(packager.bin, ['install'], {
-        stdio: 'inherit'
-    });
-
-    packagerProcess.on('close', function(code) {
-        if (code !== 0) {
-            return;
-        }
-
-        config[hashKey] = hash;
-
-        //only save new hash if packager install was successful
-        fs.writeFile(hashFile, JSON.stringify(config));
-        
-        if(prune){
-            var pruneProcess = spawn(packager.bin, ['prune'], {
-                stdio: 'inherit'
-            });
-            
-            console.log('Remove extraneous packages.');
-            
-            pruneProcess.on('close', function(code) {
-                if (code !== 0) {
-                    return;
-                }
-            });
-        }
-    });
+    spawnProcessAndHandleClose('install',hash,postInstall);
 
 }).catch(function(err) {
     console.log(err);
