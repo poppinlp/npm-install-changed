@@ -165,12 +165,12 @@ configJsonDepsHash(process.cwd()).then(function(hash) {
             var pruneProcess = spawn(packager.bin, ['prune'], {
                 stdio: 'inherit'
             });
-        }
-    });
-
-    pruneProcess.on('close', function(code) {
-        if (code !== 0) {
-            return;
+            
+            pruneProcess.on('close', function(code) {
+                if (code !== 0) {
+                    return;
+                }
+            });
         }
     });
 
