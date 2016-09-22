@@ -166,6 +166,8 @@ configJsonDepsHash(process.cwd()).then(function(hash) {
                 stdio: 'inherit'
             });
             
+            console.log('Remove extraneous packages.');
+            
             pruneProcess.on('close', function(code) {
                 if (code !== 0) {
                     return;
