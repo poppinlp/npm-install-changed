@@ -26,7 +26,7 @@ instead of the usual `npm install`
 
 ### Arguments
 
-Use `--bower` for bower package manager. To do recursive checking on dependencies, use `--recursive`.
+Use `--bower` for bower package manager. To do recursive checking on dependencies, use `--recursive`. Use `--prune` to remove unused dependencies after running install.
 
 ### License
 
