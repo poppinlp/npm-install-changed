@@ -147,7 +147,11 @@ function postInstall(hash){
     config[hashKey] = hash;
 
     //only save new hash if packager install was successful
-    fs.writeFile(hashFile, JSON.stringify(config));
+    fs.writeFile(hashFile, JSON.stringify(config), (err) => {
+        if (err) {
+            console.log(err);
+        }
+    });
         
     if(prune){
         spawnProcessAndHandleClose('prune');
