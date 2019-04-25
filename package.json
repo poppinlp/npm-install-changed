@@ -9,6 +9,6 @@
   "license": "MIT",
   "repository": "https://github.com/oNaiPs/npm-install-changed.git",
   "dependencies": {
-    "cross-spawn": "^2.2.3"
+    "cross-spawn": "6.0.5"
   }
 }
