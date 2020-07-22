@@ -43,15 +43,41 @@ const isRecursive = args.has(FLAG_RECURSIVE) && args.delete(FLAG_RECURSIVE);
 const isPrune = args.has(FLAG_PRUNE) && args.delete(FLAG_PRUNE);
 
 (async () => {
-  const config = await npmInstallChanged.readHash();
-  // TODO: it's just for compatibility
-  const packageManager = isBower
-    ? PACKAGE_MANAGER.bower
-    : isYarn
-    ? PACKAGE_MANAGER.yarn
-    : PACKAGE_MANAGER.npm;
+  const historyHash = await npmInstallChanged.readHistoryHash();
+
+  // TODO:
+  // We may let user specify package manager name via CLI argument.
+  // But it may bring break change.
+  let packageManager = PACKAGE_MANAGER.npm;
+  isBower && (packageManager = PACKAGE_MANAGER.bower);
+  isYarn && (packageManager = PACKAGE_MANAGER.yarn);
+
   const hashKey = packageManager.bin + "-hash";
+  const depsHash = await npmInstallChanged.getDepsHash(isRecursive);
+
+  if (depsHash === historyHash[hashKey]) return;
+
+  await npmInstallChanged.spawnProcess(
+    ["install", ...args]
+  );
+
+  postInstall();
 })();
+
+function postInstall(hash) {
+  config[hashKey] = hash;
+
+  //only save new hash if packager install was successful
+  fs.writeFile(hashFile, JSON.stringify(config), (err) => {
+    if (err) {
+      console.log(err);
+    }
+  });
+
+  if (prune) {
+    spawnProcessAndHandleClose("prune");
+  }
+}
 
 /*
 const fs = require("fs");

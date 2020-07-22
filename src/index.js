@@ -11,7 +11,7 @@ const CHECKSUM_ENCODING = "hex";
 
 const DEFAULT_HASHFILE = ".npm-install-changed.json";
 
-exports.readHash = async () => {
+exports.readHistoryHash = async () => {
   try {
     const hash = await fs.readFile(DEFAULT_HASHFILE, {
       encoding: ENCODING,
@@ -22,12 +22,19 @@ exports.readHash = async () => {
   }
 };
 
-try {
-  var config = JSON.parse(fs.readFileSync(hashFile));
-} catch (e) {}
+exports.getDepsHash = async (pkgJsonPath,) => {
+  fs.readFile(path.join(pkgJsonDir))
+};
 
-/*
-exports.checksum = (
+exports.spawnProcess = (bin, args = []) => new Promise((resolve, reject) => {
+  const process = spawn(bin, args, {
+    stdio: "inherit",
+  });
+  process.on('error', reject);
+  process.on("close", resolve);
+});
+
+const checksum = (
   str,
   algorithm = CHECKSUM_ALGORITHM,
   encoding = CHECKSUM_ENCODING
@@ -35,6 +42,7 @@ exports.checksum = (
   return crypto.createHash(algorithm).update(str, "utf8").digest(encoding);
 };
 
+/*
 function componentsFolder(dir) {
   if (packager.bin === "bower") {
     var bowerComponents = path.join(dir, "bower_components");
@@ -112,73 +120,4 @@ function configJsonDepsHash(configJsonDir) {
     });
   });
 }
-
-function spawnProcessAndHandleClose(action, hash, cb) {
-  action = [].concat(action);
-  console.log("Running " + packager.bin + " " + action.join(" ") + "...");
-  var process = spawn(packager.bin, [action], {
-    stdio: "inherit",
-  });
-
-  process.on("close", function (code) {
-    if (code !== 0) {
-      return;
-    }
-    if (typeof cb === "function") {
-      cb(hash);
-    }
-  });
-}
-
-function postInstall(hash) {
-  config[hashKey] = hash;
-
-  //only save new hash if packager install was successful
-  fs.writeFile(hashFile, JSON.stringify(config), (err) => {
-    if (err) {
-      console.log(err);
-    }
-  });
-
-  if (prune) {
-    spawnProcessAndHandleClose("prune");
-  }
-}
-
-try {
-  var config = JSON.parse(fs.readFileSync(hashFile));
-} catch (e) {}
-
-//determine what packager are we targeting
-if (bower) {
-  packager = {
-    bin: "bower",
-    configJson: "./bower.json",
-  };
-} else {
-  packager = {
-    bin: "npm",
-    configJson: "./package.json",
-  };
-}
-
-var hashKey = [packager.bin + "-hash"];
-
-configJsonDepsHash(process.cwd())
-  .then(function (hash) {
-    if (hash === config[hashKey]) {
-      console.log("Nothing to do.");
-      return;
-    }
-
-    //looks like configJson dependencies have changed
-    spawnProcessAndHandleClose(
-      ["install"].concat(filteredArgs),
-      hash,
-      postInstall
-    );
-  })
-  .catch(function (err) {
-    console.log(err);
-  });
 */
